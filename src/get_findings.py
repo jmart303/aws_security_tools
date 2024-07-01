@@ -2,10 +2,9 @@ import botocore.exceptions
 import botocore.errorfactory
 import get_aws_service_client
 import get_aws_data
-import get_credentials
+import credentials
 import get_detector_id
 import setup_environment
-import security_data
 import json
 from datetime import datetime
 
@@ -66,8 +65,8 @@ def describe_findings(detector, finding_id, count):
                 print(f'details {detector} {region} {finding_id} {count}')
         except KeyError as e:
             logger.info(f'missing keys for findings {e}')
-    except botocore.exceptions.ClientError as error:
-        logger.critical(f'error describing findings {error}')
+    except botocore.exceptions.ClientError as e:
+        logger.critical(f'error describing findings {e}')
 
 
 def list_findings(detector, next_token):
@@ -87,8 +86,8 @@ def list_findings(detector, next_token):
             NextToken=next_token
         )
         return response
-    except botocore.exceptions.ClientError as error:
-        logger.critical(f'error listing high findings {error}')
+    except botocore.exceptions.ClientError as e:
+        logger.critical(f'error listing high findings {e}')
 
 
 def get_findings(detector):
@@ -118,8 +117,8 @@ def get_findings(detector):
                 else:
                     next_token_check = False
 
-    except botocore.errorfactory.ClientError as error:
-        logger.critical(f'error listing guardduty findings {error}')
+    except botocore.errorfactory.ClientError as e:
+        logger.critical(f'error listing guardduty findings {e}')
 
 
 def list_detector_ids():
@@ -129,8 +128,8 @@ def list_detector_ids():
         )
         detector = response['DetectorIds']
         return detector[0]
-    except botocore.exceptions.ClientError as error:
-        logger.critical(f'error retrieving detector id {error}')
+    except botocore.exceptions.ClientError as e:
+        logger.critical(f'error retrieving detector id {e}')
 
 
 if __name__ == '__main__':
@@ -138,41 +137,15 @@ if __name__ == '__main__':
     log_file = f'./logs/gdf.log'
     logger_config = setup_environment.Logger(start, log_file)
     logger = logger_config.conf_logger()
-    '''
-     Retrieve needed accounts from secrets manager
-    '''
-    config_svcs_account = get_aws_data.GetAccounts(logger, 'cred')
-    svcs_account = config_svcs_account.get_account()
-    config_dev_account = get_aws_data.GetAccounts(logger, 'dev')
-    dev_account = config_dev_account.get_account()
-    config_account = get_aws_data.GetAccounts(logger, 'gd')
-    target_account = config_account.get_account()
 
-    '''
-    Retrieve needed roles from secrets manager
-    '''
-    #  AUDIT ROLE
-    audit_security_data = security_data.audit_role_data(logger)
-    audit_credentials = get_credentials.security_credentials(
-        target_account, audit_security_data['security_audit_role'],
-        audit_security_data['audit_role'], audit_security_data['role_session_name'], dev_account, logger)
-
-    # # ENFORCE ROLE
-    # enforce_security_data = security_data.enforce_role_data(logger)
-    # enforce_credentials = get_credentials.security_credentials(
-    #     target_account, enforce_security_data['security_enforce_role'],
-    #     enforce_security_data['enforce_role'], enforce_security_data['role_session_name'], svcs_account, logger)
-
-    # IR ENFORCE
-    ir_enforce_security_data = security_data.ir_enforce_role_data(logger)
-    ir_enforce_credentials = get_credentials.security_credentials(
-        target_account, ir_enforce_security_data['security_ir_enforce_role'],
-        ir_enforce_security_data['ir_enforce_role'], ir_enforce_security_data['role_session_name'], svcs_account, logger)
+    account_config = get_aws_data.GetAccounts(logger, 'gd')
+    gd_account = account_config.get_account()
+    audit_credentials = credentials.get_audit_credentials(gd_account, logger)
 
     regions = setup_environment.get_aws_enabled_regions('ec2', audit_credentials)
     if regions:
         for region in regions:
-            client = get_aws_service_client.get_aws_client('guardduty', region, ir_enforce_credentials, logger)
+            client = get_aws_service_client.get_aws_client('guardduty', region, audit_credentials, logger)
             detector_id = get_detector_id.list_detector_ids(client, logger)
             try:
                 get_findings(detector_id)

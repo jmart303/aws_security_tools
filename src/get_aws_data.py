@@ -27,7 +27,7 @@ class GetAccounts:
             self.logger.critical(f'client error getting main account {error}')
             raise error
 
-        if self.account_type == 'cred':
+        if self.account_type == 'svcs':
             account = get_secret_value_response['SecretString']
             formatted_account = json.loads(account)
             return formatted_account['svcs']
@@ -39,6 +39,10 @@ class GetAccounts:
             account = get_secret_value_response['SecretString']
             formatted_account = json.loads(account)
             return formatted_account['dev']
+        if self.account_type == "master":
+            account = get_secret_value_response['SecretString']
+            formatted_account = json.loads(account)
+            return formatted_account['master']
         else:
             return None
 
