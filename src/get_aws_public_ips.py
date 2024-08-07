@@ -78,9 +78,13 @@ if __name__ == '__main__':
     regions = setup_environment.get_aws_enabled_regions('ec2', audit_credentials)
 
     target_accounts = pull_aws_accounts.list_accounts(audit_credentials, logger)
-    job_arguments = [[account, region, logger]
-                     for account in target_accounts
-                     for region in regions
-                     ]
-    with multiprocessing.Pool(processes=10)as pool:
-        pool.starmap(main, job_arguments)
+    with open('dev_accounts.txt', 'a') as file:
+        for account in target_accounts:
+            file.write(f'{account}\n')
+
+    # job_arguments = [[account, region, logger]
+    #                  for account in target_accounts
+    #                  for region in regions
+    #                  ]
+    # with multiprocessing.Pool(processes=10)as pool:
+    #     pool.starmap(main, job_arguments)

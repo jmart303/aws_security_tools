@@ -18,9 +18,16 @@ def list_org():
     for ou in response['OrganizationalUnits']:
         ou_name = ou['Name']
         ou_id = ou['Id']
+
         try:
-            account, name, status = list_ou_accounts.list_ou_accounts(ou_id, logger, audit_credentials)
-            print(f'{ou_name} {account} {name} {status}')
+            account_list = list_ou_accounts.list_ou_accounts(ou_id, logger, audit_credentials)
+            ou_data = {
+                'ou': ou_name,
+                'id': ou_id,
+                'accounts': account_list
+            }
+            account_data = json.dumps(ou_data, indent=4)
+            print(f'{account_data}')
         except TypeError as e:
             logger.critical(f'error accessing ou details {e}')
 

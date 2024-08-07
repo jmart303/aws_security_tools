@@ -27,3 +27,4 @@ def list_accounts(credentials, logger):
         return account_list
     except botocore.exceptions.ClientError as error:
         logger.critical(f'error retrieving accounts {error}')
+
